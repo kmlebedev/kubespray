@@ -3,6 +3,7 @@
   import_playbook: ansible_version.yml
 
 - hosts: all
+  strategy: hosts_sorted
   gather_facts: false
   tags: always
   tasks:
@@ -18,13 +19,14 @@
       no_log: true
 
 - hosts: bastion[0]
+  strategy: hosts_sorted
   gather_facts: False
   roles:
     - { role: kubespray-defaults }
     - { role: bastion-ssh-config, tags: ["localhost", "bastion"] }
 
 - hosts: k8s-cluster:etcd:calico-rr
-  strategy: linear
+  strategy: hosts_sorted
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   gather_facts: false
   vars:
@@ -41,6 +43,7 @@
 
 - name: Download images to ansible host cache via first kube-master node
   hosts: kube-master[0]
+  strategy: hosts_sorted
   gather_facts: False
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
@@ -51,6 +54,7 @@
 
 - name: Prepare nodes for upgrade
   hosts: k8s-cluster:etcd:calico-rr
+  strategy: hosts_sorted
   gather_facts: False
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
@@ -61,6 +65,7 @@
 
 - name: Upgrade container engine on non-cluster nodes
   hosts: etcd:calico-rr:!k8s-cluster
+  strategy: hosts_sorted
   gather_facts: False
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   serial: "{{ serial | default('20%') }}"
@@ -70,6 +75,7 @@
   environment: "{{ proxy_env }}"
 
 - hosts: etcd
+  strategy: hosts_sorted
   gather_facts: False
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
@@ -82,6 +88,7 @@
       when: not etcd_kubeadm_enabled | default(false)
 
 - hosts: k8s-cluster
+  strategy: hosts_sorted
   gather_facts: False
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
@@ -96,6 +103,7 @@
 - name: Handle upgrades to master components first to maintain backwards compat.
   gather_facts: False
   hosts: kube-master
+  strategy: hosts_sorted
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   serial: 1
   roles:
@@ -113,6 +121,7 @@
 
 - name: Upgrade calico and external cloud provider on all masters and nodes
   hosts: kube-master:kube-node
+  strategy: hosts_sorted
   gather_facts: False
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   serial: "{{ serial | default('20%') }}"
@@ -125,6 +134,7 @@
 
 - name: Finally handle worker upgrades, based on given batch size
   hosts: kube-node:!kube-master
+  strategy: hosts_sorted
   gather_facts: False
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   serial: "{{ serial | default('20%') }}"
@@ -139,6 +149,7 @@
   environment: "{{ proxy_env }}"
 
 - hosts: kube-master[0]
+  strategy: hosts_sorted
   gather_facts: False
   any_errors_fatal: true
   roles:
@@ -147,6 +158,7 @@
     - { role: win_nodes/kubernetes_patch, tags: ["master", "win_nodes"] }
 
 - hosts: calico-rr
+  strategy: hosts_sorted
   gather_facts: False
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
@@ -155,6 +167,7 @@
   environment: "{{ proxy_env }}"
 
 - hosts: kube-master
+  strategy: hosts_sorted
   gather_facts: False
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
@@ -163,6 +176,7 @@
   environment: "{{ proxy_env }}"
 
 - hosts: k8s-cluster
+  strategy: hosts_sorted
   gather_facts: False
   any_errors_fatal: "{{ any_errors_fatal | default(true) }}"
   roles:
